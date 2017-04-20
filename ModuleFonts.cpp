@@ -18,7 +18,7 @@ ModuleFonts::~ModuleFonts()
 int ModuleFonts::Load(const char* texture_path, const char* characters, uint rows)
 {
 	int id = -1;
-
+	const uint char_amount = strlen(characters);
 	if(texture_path == nullptr || characters == nullptr || rows == 0)
 	{
 		LOG("Could not load font");
@@ -27,7 +27,7 @@ int ModuleFonts::Load(const char* texture_path, const char* characters, uint row
 
 	SDL_Texture* tex = App->textures->Load(texture_path);
 
-	if(tex == nullptr || strlen(characters) >= MAX_FONT_CHARS)
+	if(tex == nullptr || char_amount >= MAX_FONT_CHARS)
 	{
 		LOG("Could not load font at %s with characters '%s'", texture_path, characters);
 		return id;
@@ -46,10 +46,18 @@ int ModuleFonts::Load(const char* texture_path, const char* characters, uint row
 
 	fonts[id].graphic = tex; // graphic: pointer to the texture
 	fonts[id].rows = rows; // rows: rows of characters in the texture
-	fonts[id].len = 0; // len: length of the table
+	fonts[id].len = char_amount; // len: length of the table
 
 	// TODO 1: Finish storing font data
 
+	uint texture_width = 0, texture_height = 0;
+	for (int i = 0; i < fonts[id].len; i++) {
+		fonts[id].table[i] = characters[i];
+	}
+	fonts[id].row_chars = fonts[id].len / fonts[id].rows;
+	App->textures->GetSize(tex, texture_width, texture_height);
+	fonts[id].char_w = texture_width / fonts[id].row_chars;
+	fonts[id].char_h = texture_height / fonts[id].rows;
 	// table: array of chars to have the list of characters
 	// row_chars: amount of chars per row of the texture
 	// char_w: width of each character
@@ -89,5 +97,12 @@ void ModuleFonts::BlitText(int x, int y, int font_id, const char* text) const
 	for(uint i = 0; i < len; ++i)
 	{
 		// TODO 2: Find the character in the table and its position in the texture, then Blit
+		for (uint j = 0; j < font->len; j++) {
+			if (font->table[j] == text[i]) {
+				rect.y = (j / font->row_chars) * font->char_h;
+				rect.x = (j - rect.y * font->row_chars) * font->char_w;
+			}
+		}
+		App->render->Blit(font->graphic, x + i * rect.w, y, &rect, 0.0f, false);
 	}
 }
